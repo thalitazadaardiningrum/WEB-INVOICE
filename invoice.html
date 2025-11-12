@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Invoice Web</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        body {
+            background-color: #e9ecef; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 0.9rem; 
+        }
+        #area-invoice {
+            background-color: #ffffff;
+            min-height: 29.7cm; 
+            padding: 5px; 
+            margin: 5px auto;
+            border: none; 
+            box-shadow: 0 0 15px rgba(0,0,0,0.1); 
+            border-radius: 5px;
+        }
+        .invoice-header {
+            border-bottom: 2px solid #333;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+        }
+
+        .invoice-header h3 {
+             font-size: 1.5rem !important;
+        }
+        .invoice-header h2 {
+            font-size: 2rem !important;
+        }
+        .input-transparan {
+            border: none;
+            border-bottom: 1px dashed #ccc;
+            border-radius: 0;
+            padding: 5px 0;
+            background: transparent;
+            font-weight: bold;
+            color: #333;
+            text-transform: uppercase; 
+            font-size: 1.2rem !important;
+        }
+        .input-transparan:focus {
+            box-shadow: none;
+            border-bottom: 1px solid #0d6efd;
+            background: #f8f9fa;
+        }
+
+        /* Tabel Custom */
+        .table-invoice thead th {
+            background-color: #343a40;
+            color: white;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+        .table-invoice tbody td {
+            vertical-align: middle;
+            font-size: 0.85rem; 
+            padding-top: 0.25rem; 
+            padding-bottom: 0.25rem;
+            border-bottom: 1px solid #343a40 !important; 
+        }
+        .table-invoice tbody tr:last-child td {
+            border-bottom: none !important; 
+        }
+        
+        .table-invoice .input-group-text {
+            background-color: transparent; 
+            border: none;
+            font-size: 0.85rem;
+            font-weight: bold;
+            padding: 0 5px 0 0; 
+        }
+
+        .table-invoice .form-control-sm {
+            padding-top: 0.15rem;
+            padding-bottom: 0.15rem;
+            height: auto; 
+        }
+
+        .terbilang-box {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 5px;
+            font-style: italic;
+            font-weight: 500;
+            font-size: 0.85rem; 
+        }
+        .col-md-5 table td {
+            font-size: 1rem !important; 
+            padding: 0.3rem 0;
+        }
+                @media print {
+            .no-print {
+                display: none !important;
+            }
+            .container {
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                max-width: none !important;
+            }
+            #area-invoice {
+                box-shadow: none;
+                margin: 0; 
+                border: none; 
+                padding: 0;
+            }
+            .invoice-header {
+                padding-top: 0 !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="d-flex justify-content-end gap-2 my-4 no-print">
+        <button class="btn btn-secondary" onclick="window.location.reload()">
+            <i class="fa-solid fa-rotate-right"></i> Reset
+        </button>
+        <button class="btn btn-danger" onclick="generatePDF()">
+            <i class="fa-solid fa-file-pdf"></i> Save & Cetak PDF
+        </button>
+    </div>
+
+    <div id="area-invoice" class="container"> 
+        
+        <div class="invoice-header d-flex justify-content-between align-items-start">
+            <div style="width: 30%;">
+                <h5><b>Kepada :</b></h5>
+                <h4><input type="text" class="form-control input-transparan fs-4" placeholder="Nama Perusahaan" value=""></h4>
+            </div>
+            <div class="text-end">
+                <h2 class="fw-bold text-dark mb-1">INVOICE</h2>
+            </div>
+        </div>
+
+        <div class="table-responsive mb-4">
+            <table class="table table-bordered table-invoice">
+                <thead class="text-center">
+                    <tr>
+                        <th style="width: 15%">Tanggal</th>
+                        <th style="width: 25%">Nama Barang</th>
+                        <th style="width: 10%">Satuan</th>
+                        <th style="width: 15%">Harga</th>
+                        <th style="width: 20%">Subtotal</th>
+                        <th style="width: 5%" class="no-print" data-html2canvas-ignore="true">Aksi</th> 
+                    </tr>
+                </thead>
+                <tbody id="invoiceBody">
+                    <tr id="row_1">
+                        <td><input type="date" class="form-control form-control-sm border-0" value=""></td>
+                        <td><input type="text" class="form-control form-control-sm border-0" placeholder="Nama Barang"></td>
+                        <td><input type="numb" class="form-control form-control-sm text-center border-0" data-type="qty" value="" oninput="hitungSubtotal(1)"></td> 
+                        <td>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">Rp.</span>
+                                <input type="text" class="form-control text-end border-0" data-type="price" value="" oninput="hitungSubtotal(1)">
+                            </div>
+                        </td>
+                        <td class="text-end fw-bold align-middle">
+                            Rp. <span data-id="subtotal_1"></span>
+                        </td>
+                        <td class="text-center no-print" data-html2canvas-ignore="true">
+                            <button class="btn btn-outline-danger btn-sm border-0" onclick="hapusBaris('row_1')"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <button class="btn btn-outline-primary btn-sm no-print" data-html2canvas-ignore="true" onclick="tambahBaris()">
+                <i class="fa-solid fa-plus"></i>Tambah Baris
+            </button>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-7">
+                <label class="fw-bold mb-1 text-muted">Terbilang:</label>
+                <div class="terbilang-box rounded text-capitalize" id="terbilangText">
+                    Nol Rupiah
+                </div>
+            </div>
+            <div class="col-md-5">
+                <table class="table table-borderless">
+                    <tr>
+                        <td class="fw-bold text-end fs-5">TOTAL</td>
+                        <td class="fw-bold text-end text-primary fs-5">
+                            Rp. <span id="grandTotal">0</span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('tgl_skrg').innerText = new Date().toLocaleDateString('id-ID');
+        
+        hitungGrandTotal(); 
+        document.querySelector('.input-transparan').focus();
+    });
+    document.addEventListener('keydown', handleEnterKey);
+
+    function handleEnterKey(event) {
+        if (event.keyCode === 13) {
+            event.preventDefault(); 
+            
+            const currentInput = document.activeElement;
+            
+            if (currentInput && currentInput.tagName === 'INPUT') {
+                
+                const firstInput = document.querySelector('.input-transparan');
+                if (currentInput === firstInput) {
+                    const firstDateInput = document.querySelector('#row_1 input[type="date"]');
+                    if (firstDateInput) {
+                        firstDateInput.focus();
+                    }
+                    return;
+                }
+                
+                if (currentInput.closest('.table-invoice')) {
+                    focusNextInput(currentInput);
+                }
+            }
+        }
+    }
+
+    function focusNextInput(currentInput) {
+        const allFocusableInputs = Array.from(document.querySelectorAll('#invoiceBody input:not([type="hidden"])')).filter(
+            input => !input.closest('.no-print')
+        );
+
+        const currentIndex = allFocusableInputs.indexOf(currentInput);
+        if (currentIndex === -1) return;
+
+        if (currentIndex < allFocusableInputs.length - 1) {
+            allFocusableInputs[currentIndex + 1].focus();
+        } else {
+            const rowIdMatch = currentInput.closest('tr').id.match(/row_(\d+)/);
+            if (!rowIdMatch) return;
+            const currentRowNumber = parseInt(rowIdMatch[1]);
+            const nextRowNumber = currentRowNumber + 1;
+
+            tambahBaris();
+            
+            setTimeout(() => {
+                const newRow = document.getElementById(`row_${nextRowNumber}`);
+                if (newRow) {
+                    newRow.querySelector('input[type="date"]').focus();
+                }
+            }, 50); 
+        }
+    }
+
+    function tambahBaris() {
+        const existingRows = document.querySelectorAll('#invoiceBody tr');
+        let maxId = 0;
+        existingRows.forEach(row => {
+            const idMatch = row.id.match(/row_(\d+)/);
+            if (idMatch) {
+                maxId = Math.max(maxId, parseInt(idMatch[1]));
+            }
+        });
+        const newRowCount = maxId + 1;
+        
+        const tbody = document.getElementById('invoiceBody');
+        const newRow = document.createElement('tr');
+        newRow.id = `row_${newRowCount}`;
+        
+        newRow.innerHTML = `
+            <td><input type="date" class="form-control form-control-sm border-0" value=""></td>
+            <td><input type="text" class="form-control form-control-sm border-0" placeholder="Nama Barang"></td>
+            <td><input type="number" class="form-control form-control-sm text-center border-0" data-type="qty" value="" oninput="hitungSubtotal(${newRowCount})"></td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">Rp.</span>
+                    <input type="number" class="form-control text-end border-0" data-type="price" value="" oninput="hitungSubtotal(${newRowCount})">
+                </div>
+            </td>
+            <td class="text-end fw-bold align-middle">
+                Rp. <span data-id="subtotal_${newRowCount}"></span>
+            </td>
+            <td class="text-center no-print" data-html2canvas-ignore="true">
+                <button class="btn btn-outline-danger btn-sm border-0" onclick="hapusBaris('row_${newRowCount}')"><i class="fa-solid fa-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(newRow);
+        hitungSubtotal(newRowCount); 
+    }
+
+    function hapusBaris(rowId) {
+        const row = document.getElementById(rowId);
+        if (row) {
+            row.remove();
+            hitungGrandTotal();
+        }
+    }
+
+    function hitungSubtotal(id) {
+        const row = document.getElementById(`row_${id}`);
+        if (!row) return;
+
+        let qtyRaw = row.querySelector('[data-type="qty"]').value;
+        let qty = parseFloat(qtyRaw.replace(/[^0-9,.]/g, '')) || 0; 
+        
+        let priceInput = row.querySelector('[data-type="price"]');
+        let price = parseFloat(priceInput.value) || 0;
+        
+        let subtotal = qty * price;
+
+        row.querySelector(`[data-id="subtotal_${id}"]`).innerText = subtotal.toLocaleString('id-ID');
+        
+        hitungGrandTotal();
+    }
+
+    function hitungGrandTotal() {
+        let total = 0;
+        const subtotalSpans = document.querySelectorAll('[data-id^="subtotal_"]');
+        
+        subtotalSpans.forEach(span => {
+            let val = parseFloat(span.innerText.replace(/\./g, '').replace(/,/g, '.')) || 0;
+            total += val;
+        });
+
+        document.getElementById('grandTotal').innerText = total.toLocaleString('id-ID');
+        
+        document.getElementById('terbilangText').innerText = terbilang(total) + " Rupiah";
+    }
+
+    function terbilang(angka) {
+        angka = Math.abs(Math.round(angka));
+        var bilangan = String(angka);
+        
+        var angka_array = new Array('0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0');
+        var kata = new Array('','Satu','Dua','Tiga','Empat','Lima','Enam','Tujuh','Delapan','Sembilan');
+        var tingkat = new Array('','Ribu','Juta','Milyar','Triliun');
+        
+        var panjang_bilangan = bilangan.length;
+        
+        if(panjang_bilangan > 15){ return "Diluar Batas"; }
+        
+        for(i = 1; i <= panjang_bilangan; i++) {
+            angka_array[i] = bilangan.substr(-(i),1);
+        }
+        
+        var i = 1;
+        var j = 0;
+        var kalimat = "";
+        
+        while(i <= panjang_bilangan) {
+            var subkalimat = "";
+            var kata1 = ""; var kata2 = ""; var kata3 = "";
+            
+            if(angka_array[i+2] != "0"){
+                if(angka_array[i+2] == "1"){ kata1 = "Seratus"; } 
+                else { kata1 = kata[angka_array[i+2]] + " Ratus"; }
+            }
+            
+            if(angka_array[i+1] != "0"){
+                if(angka_array[i+1] == "1"){
+                    if(angka_array[i] == "0"){ kata2 = "Sepuluh"; } 
+                    else if(angka_array[i] == "1"){ kata2 = "Sebelas"; } 
+                    else { kata2 = kata[angka_array[i]] + " Belas"; }
+                } else {
+                    kata2 = kata[angka_array[i+1]] + " Puluh";
+                }
+            }
+            
+            if (angka_array[i] != "0"){
+                if (angka_array[i+1] != "1"){ kata3 = kata[angka_array[i]]; }
+            }
+            
+            if ((angka_array[i] != "0") || (angka_array[i+1] != "0") || (angka_array[i+2] != "0")){
+                subkalimat = kata1+" "+kata2+" "+kata3+" "+tingkat[j]+" ";
+            }
+            
+            kalimat = subkalimat + kalimat;
+            i = i + 3;
+            j = j + 1;
+        }
+        
+        if ((angka_array[5] == "0") && (angka_array[6] == "0")){
+            kalimat = kalimat.replace("Satu Ribu","Seribu");
+        }
+        
+        return (kalimat.trim().replace(/\s+/g, ' ')) || "Nol";
+    }
+
+    function generatePDF() {
+        const element = document.getElementById('area-invoice');
+        
+        const companyName = document.querySelector('.input-transparan').value.toUpperCase().replace(/\s/g, '_');
+        const dateFormatted = new Date().toISOString().slice(0,10).replace(/-/g, '');
+
+        const opt = {
+            margin: 0.4, 
+            filename: companyName + '_INVOICE_' + dateFormatted + '.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 3 }, 
+            jsPDF: { unit: 'in', format: 'A4', orientation: 'portrait' } 
+        };
+
+        html2pdf().set(opt).from(element).save();
+    }
+</script>
+
+</body>
+</html>
